@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def load_data(file_path='data.csv'):
+def load_data(file_path='data/sample_chat.txt'):
     """
     Load data from a txt file into a string.
 
@@ -13,7 +13,7 @@ def load_data(file_path='data.csv'):
     """
     try:
         with open(file_path, 'r', encoding="utf-8") as file:
-            data = file.read(file)
+            data = file.read()
         print(f"Data loaded successfully from {file_path}")
         return data
     except Exception as e:
