@@ -18,6 +18,7 @@ def get_message_stats(chat_data):
               'ai_messages': int,
           }
     """
+
     if not chat_data:
         print("No chats to analyze.\n")
         return {}
@@ -48,6 +49,7 @@ def extract_keywords(chat_data, k=5):
     Returns:
     list: A list of top k keywords.
     """
+
     if not chat_data:
         print("No data to extract keywords from.\n")
         return []
@@ -71,3 +73,30 @@ def extract_keywords(chat_data, k=5):
     top_keywords = [(freq, word) for word, freq in freq_dist.most_common(k)]
 
     return top_keywords
+
+
+def generate_summary(chat_data):
+    """
+    Generate a summary of the chat data. [Req 2.4]
+
+    Parameters:
+    chat_data (list): A list of dictionaries, each containing 'speaker' and 'message' keys.
+
+    Returns:
+    str: A summary of the chat data.
+    """
+
+    if not chat_data:
+        return "No data to summarize."
+
+    message_stats = get_message_stats(chat_data)
+    top_keywords = extract_keywords(chat_data)
+    top_keywords_str = ', '.join([word for _, word in top_keywords])
+
+    summary = "Summary:\n" \
+        + f"- The conversation had {message_stats['total_messages']} exchanges.\n" \
+        + f"- User sent {message_stats['user_messages']} messages.\n" \
+        + f"- AI sent {message_stats['ai_messages']} messages.\n" \
+        + f"- Most common keywords: {top_keywords_str}."
+
+    return summary
