@@ -35,17 +35,24 @@ def get_message_stats(chat_data):
             1 for message in content if message['speaker'] == 'User')
         ai_messages = total_messages - user_messages
 
-        avg_message_length = 0
-        if total_messages != 0:
+        avg_message_length_user = 0
+        if user_messages != 0:
             total_characters = sum(
-                len(message['message']) for message in content)
-            avg_message_length = round(total_characters / total_messages)
+                len(message['message']) for message in content if message['speaker'] == 'User')
+            avg_message_length_user = round(total_characters / user_messages)
+
+        avg_message_length_ai = 0
+        if ai_messages != 0:
+            total_characters = sum(
+                len(message['message']) for message in content if message['speaker'] == 'AI')
+            avg_message_length_ai = round(total_characters / ai_messages)
 
         chat_stats = {
             'total_messages': total_messages,
-            'avg_message_length': avg_message_length,
             'user_messages': user_messages,
             'ai_messages': ai_messages,
+            'avg_message_length_user': avg_message_length_user,
+            'avg_message_length_ai': avg_message_length_ai
         }
 
         stats[chat_id] = chat_stats
@@ -145,9 +152,11 @@ def generate_summary(chat_data):
             message_stats[chat_id]['user_messages'], message_stats[chat_id]['ai_messages'])
 
         summary_str = f"Summary for {chat_id}:\n" \
+            + f"- The conversation contains total {message_stats[chat_id]['total_messages']} messages.\n" \
             + f"- The conversation had {exchange_count} exchanges.\n" \
             + f"- User sent {message_stats[chat_id]['user_messages']} messages.\n" \
             + f"- AI sent {message_stats[chat_id]['ai_messages']} messages.\n" \
+            + f"- Average message length is {message_stats[chat_id]['avg_message_length']} characters.\n" \
             + f"- Most common keywords: {top_keywords_str}."
 
         summary[chat_id] = summary_str
