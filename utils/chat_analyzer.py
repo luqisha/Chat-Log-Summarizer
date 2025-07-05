@@ -35,8 +35,15 @@ def get_message_stats(chat_data):
             1 for message in content if message['speaker'] == 'User')
         ai_messages = total_messages - user_messages
 
+        avg_message_length = 0
+        if total_messages != 0:
+            total_characters = sum(
+                len(message['message']) for message in content)
+            avg_message_length = round(total_characters / total_messages)
+
         chat_stats = {
             'total_messages': total_messages,
+            'avg_message_length': avg_message_length,
             'user_messages': user_messages,
             'ai_messages': ai_messages,
         }
