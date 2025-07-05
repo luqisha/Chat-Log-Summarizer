@@ -1,27 +1,39 @@
 import re
+import os
 
 
-def load_data(file_path='data/sample_chat.txt'):
+def load_data(path='data/'):
     """
-    Load data from a txt file into a string. [Req 1.1]
+    Load data from text files into a list of strings. [Req 1.1]
 
     Parameters:
-    file_path (str): The path to the txt file.
+    path (str): The path to text files.
 
     Returns:
-    str: The content of the file as a string, or None if an error occurs.
+    list: The content of the texts file as a list of string, or None if an error occurs.
     """
-    try:
-        with open(file_path, 'r', encoding="utf-8") as file:
-            data = file.read()
-        print(f"Data loaded successfully from {file_path}\n")
-        return data
-    except Exception as e:
-        print(f"Error loading data: {e}\n")
-        return None
+
+    chats = list()
+
+    for filename in os.listdir(path):
+        if filename.endswith('.txt'):
+            file_path = os.path.join(path, filename)
+            print(f"Loading data from {file_path}...")
+
+            try:
+                with open(file_path, 'r', encoding="utf-8") as file:
+                    data = file.read()
+                print(f"Data loaded successfully from {file_path}\n")
+                chats.append(data)
+            except Exception as e:
+                print(f"Error loading data: {e}\n")
+                return None
+
+    print(f"Loaded {len(chats)} chat files!\n")
+    return chats
 
 
-def parse_chats(data):
+def parse_chat(data):
     """
     Parse messages from chat data by speaker. [Req 2.1]
 
@@ -61,5 +73,5 @@ def parse_chats(data):
                  'message': split_data[i + 1].strip().replace('\n', ' ')
                  })
 
-    print(f"Parsed {len(parsed_data)} messages from chat data.\n")
+    print(f"Parsed {len(parsed_data)} messages.\n")
     return parsed_data
