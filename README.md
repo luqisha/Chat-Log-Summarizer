@@ -50,3 +50,10 @@ This project repository contains 3 branches.
 
 - Run the tool using `python main.py` command in the terminal.
 - The script may take some time on the first run as it downloads required resources.
+
+
+### 📄 Sample Output 
+Here's a preview of what the analysis output should look like for two sample chats
+
+![image](https://github.com/user-attachments/assets/906424c9-f91d-4a9f-a02a-c04ebb5bd7f0)
+
