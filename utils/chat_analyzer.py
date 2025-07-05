@@ -1,6 +1,7 @@
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def get_message_stats(chat_data):
@@ -8,31 +9,39 @@ def get_message_stats(chat_data):
     Get statistics of messages in the chat data. [Req 2.2]
 
     Parameters:
-    chats (list): A list of dictionaries, each containing 'speaker' and 'message' keys.
+    chat_data (dict):   A dictionary with chat ID as keys and chat content as values.
+                        The contents are structured as list of dictionaries, each item
+                        containing 'speaker' and 'message' keys.
 
     Returns:
-    dict: A dictionary with statistics of messages.
-          {
-              'total_messages': int,
-              'user_messages': int,
-              'ai_messages': int,
-          }
+    dict:   A dictionary containing chat ID as keys and a dictionary of statistics as values.
+            The statistics include:
+                {
+                    'total_messages': int,
+                    'user_messages': int,
+                    'ai_messages': int,
+                }
     """
 
     if not chat_data:
         print("No chats to analyze.\n")
         return {}
 
-    total_messages = len(chat_data)
-    user_messages = sum(
-        1 for message in chat_data if message['speaker'] == 'User')
-    ai_messages = total_messages - user_messages
+    stats = dict()
 
-    stats = {
-        'total_messages': total_messages,
-        'user_messages': user_messages,
-        'ai_messages': ai_messages,
-    }
+    for chat_id, content in chat_data.items():
+        total_messages = len(content)
+        user_messages = sum(
+            1 for message in content if message['speaker'] == 'User')
+        ai_messages = total_messages - user_messages
+
+        chat_stats = {
+            'total_messages': total_messages,
+            'user_messages': user_messages,
+            'ai_messages': ai_messages,
+        }
+
+        stats[chat_id] = chat_stats
 
     return stats
 
@@ -43,11 +52,14 @@ def extract_keywords(chat_data, k=5):
     [Req 2.3]
 
     Parameters:
-    data (list): A list of dictionaries, each containing 'speaker' and 'message' keys.
+    chat_data (dict):   A dictionary with chat ID as keys and chat content as values.
+                        The contents are structured as list of dictionaries, each item
+                        containing 'speaker' and 'message' keys.
     k (int): The number of top keywords to extract.
 
     Returns:
-    list: A list of top k keywords.
+    dict: A dictionary with chat IDs as keys and a list of tuples as values,
+          where each tuple contains a keyword and its corresponding TF-IDF score.
     """
 
     if not chat_data:
@@ -58,20 +70,39 @@ def extract_keywords(chat_data, k=5):
     nltk.download('stopwords', quiet=True)
 
     stop_words = set(stopwords.words('english'))
-    word_corpus = []
+    documents = dict()
 
-    for data in chat_data:
-        words = word_tokenize(data['message'])
+    # Process each chat to create a document for TF-IDF
+    # Each document is a concatenation of all messages in the chat
+    for chat_id, content in chat_data.items():
+        chat_text = ' '.join([line['message'] for line in content])
+        words = word_tokenize(chat_text)
         filtered_words = [word.lower() for word in words
                           if word.isalpha()
                           and word.lower() not in stop_words]
-        word_corpus.extend(filtered_words)
 
-    word_corpus.sort()
+        documents[chat_id] = (' '.join(filtered_words))
 
-    freq_dist = nltk.FreqDist(word_corpus)
-    top_keywords = [(freq, word) for word, freq in freq_dist.most_common(k)]
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(list(documents.values()))
+    feature_names = vectorizer.get_feature_names_out()
 
+    # Extract top k keywords for each chat
+    top_keywords = {}
+    for i, chat_id in enumerate(documents.keys()):
+        # Get TF-IDF scores for current document
+        tfidf_scores = tfidf_matrix[i].toarray()[0]
+
+        # Create (score, word) pairs
+        score_word_pairs = [(tfidf_scores[idx], feature_names[idx])
+                            for idx in range(len(tfidf_scores))]
+
+        # Sort by score desc first, then by word asc for ties
+        score_word_pairs.sort(key=lambda x: x[1])
+        score_word_pairs.sort(key=lambda x: x[0], reverse=True)
+
+        # Get top k keywords
+        top_keywords[chat_id] = score_word_pairs[:k]
     return top_keywords
 
 
@@ -80,23 +111,36 @@ def generate_summary(chat_data):
     Generate a summary of the chat data. [Req 2.4]
 
     Parameters:
-    chat_data (list): A list of dictionaries, each containing 'speaker' and 'message' keys.
+    chat_data (dict):   A dictionary with chat ID as keys and chat content as values.
+                        The contents are structured as list of dictionaries, each item
+                        containing 'speaker' and 'message' keys.
 
     Returns:
-    str: A summary of the chat data.
+    dict:   Summary of each chat where each key is a chat ID and the value is a string 
+            summarizing the chat.
     """
 
     if not chat_data:
         return "No data to summarize."
 
+    summary = {}
+
     message_stats = get_message_stats(chat_data)
     top_keywords = extract_keywords(chat_data)
-    top_keywords_str = ', '.join([word for _, word in top_keywords])
 
-    summary = "Summary:\n" \
-        + f"- The conversation had {message_stats['total_messages']} exchanges.\n" \
-        + f"- User sent {message_stats['user_messages']} messages.\n" \
-        + f"- AI sent {message_stats['ai_messages']} messages.\n" \
-        + f"- Most common keywords: {top_keywords_str}."
+    for chat_id, _ in chat_data.items():
+        if chat_id not in message_stats or chat_id not in top_keywords:
+            continue
+
+        top_keywords_str = ', '.join(
+            [word for _, word in top_keywords[chat_id]])
+
+        summary_str = f"Summary for {chat_id}:\n" \
+            + f"- The conversation had {message_stats[chat_id]['total_messages']} exchanges.\n" \
+            + f"- User sent {message_stats[chat_id]['user_messages']} messages.\n" \
+            + f"- AI sent {message_stats[chat_id]['ai_messages']} messages.\n" \
+            + f"- Most common keywords: {top_keywords_str}."
+
+        summary[chat_id] = summary_str
 
     return summary
