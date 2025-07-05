@@ -1,7 +1,7 @@
 import re
 
 
-def load_data(file_path='data/sample_chat.txt'):
+def load_data(file_path='data/chat.txt'):
     """
     Load data from a txt file into a string. [Req 1.1]
 
