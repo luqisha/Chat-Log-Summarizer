@@ -1,6 +1,8 @@
 import nltk
 from nltk.corpus import stopwords
+from nltk.corpus import wordnet
 from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -120,6 +122,73 @@ def extract_keywords(chat_data, k=5):
     return top_keywords
 
 
+def get_wordnet_pos(tag):
+    """
+    Convert POS tag to WordNet POS tag.
+
+    Parameters:
+    tag (str): POS tag from nltk.pos_tag.
+
+    Returns:
+    str: WordNet POS tag. 'N' for nouns, 'V' for verbs.
+    """
+    if tag.startswith('V'):
+        return wordnet.VERB
+    else:
+        return wordnet.NOUN
+
+
+def get_chat_nature(top_keywords):
+    """
+    Determine the nature of the chat.
+    [Req 2.4]
+
+    Parameters:
+    keywords (dict):    A dictionary with chat IDs as keys and a list of tuples as values,
+                        where each tuple contains a keyword and its corresponding TF-IDF score.
+
+    Returns:
+    dict:   A dict with chat IDs as keys and a string describing the nature of the chat.
+            If no keywords are found for a chat, returns "Unknown".
+    """
+
+    if not top_keywords:
+        return {}
+
+    nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+    nltk.download('wordnet', quiet=True)
+    nltk.download('omw-1.4', quiet=True)
+
+    lemmatizer = WordNetLemmatizer()
+    chat_nature = {}
+
+    for chat_id, keyword_data in top_keywords.items():
+        summary = str()
+
+        keywords = [word for _, word in keyword_data]
+        tagged_keywords = nltk.pos_tag(keywords)
+        # print(tagged_keywords)
+
+        lemmatized_keywords = [(lemmatizer.lemmatize(word, get_wordnet_pos(tag)), tag)
+                               for word, tag in tagged_keywords]
+        # print(lemmatized_keywords)
+
+        verbs = [word for word,
+                 tag in lemmatized_keywords if tag.startswith('V')]
+        nouns = [word for word,
+                 tag in lemmatized_keywords if tag.startswith('N')]
+
+        summary = 'The user'
+        if verbs:
+            summary += f" discussed how to {', '.join(verbs)}"
+        if nouns:
+            summary += f" and focused on {', '.join(nouns)}"
+
+        chat_nature[chat_id] = summary.strip()
+
+    return chat_nature
+
+
 def generate_summary(chat_data):
     """
     Generate a summary of the chat data. [Req 2.4]
@@ -141,6 +210,7 @@ def generate_summary(chat_data):
 
     message_stats = get_message_stats(chat_data)
     top_keywords = extract_keywords(chat_data)
+    chat_nature = get_chat_nature(top_keywords)
 
     for chat_id, _ in chat_data.items():
         if chat_id not in message_stats or chat_id not in top_keywords:
@@ -158,6 +228,7 @@ def generate_summary(chat_data):
             + f"- AI sent {message_stats[chat_id]['ai_messages']} messages.\n" \
             + f"- Average message length of User is {message_stats[chat_id]['avg_message_length_user']} character.\n" \
             + f"- Average message length of AI is {message_stats[chat_id]['avg_message_length_ai']} character.\n" \
+            + f"- {chat_nature[chat_id]}.\n" \
             + f"- Most common keywords: {top_keywords_str}."
 
         summary[chat_id] = summary_str
