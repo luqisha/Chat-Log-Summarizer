@@ -93,8 +93,11 @@ def generate_summary(chat_data):
     top_keywords = extract_keywords(chat_data)
     top_keywords_str = ', '.join([word for _, word in top_keywords])
 
+    exchange_count = min(
+        message_stats['user_messages'], message_stats['ai_messages'])
+
     summary = "Summary:\n" \
-        + f"- The conversation had {message_stats['total_messages']} exchanges.\n" \
+        + f"- The conversation had {exchange_count} exchanges.\n" \
         + f"- User sent {message_stats['user_messages']} messages.\n" \
         + f"- AI sent {message_stats['ai_messages']} messages.\n" \
         + f"- Most common keywords: {top_keywords_str}."
